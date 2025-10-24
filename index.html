@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600;800&family=Source+Code+Pro:wght@300;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#000}
-html,body{height:100%;margin:0;background:var(--bg);font-family:'Montserrat',system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff}
+html,body{height:100%;margin:0;background:var(--bg);font-family:'Montserrat',system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;overflow:hidden}
 .wrap{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative}
 canvas{width:100%;height:60vh;display:block}
 .code-bg{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none;opacity:0.06;font-family:'Source Code Pro',monospace;font-size:12px;color:#0f0}
@@ -32,10 +32,9 @@ canvas{width:100%;height:60vh;display:block}
     <div class="code-lines">
       <div class="code-track" id="codeTrack">
 // love.py for i in range(0, 1000): print("❤ Dew ❤")
-heartbeat loop
-while True: beat() sleep(0.8)
+// heartbeat loop
 // commit love git commit -m "forever" git push origin heart
-function whisper(name){ return `I love you ${name}` }
+// function whisper(name){ return `I love you ${name}` }
 // end of file
       </div>
     </div>
@@ -55,25 +54,103 @@ function whisper(name){ return `I love you ${name}` }
 <script>
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
-let W=0,H=0,t=0;
+let W=0,H=0,t=0,glowPulse=0;
+
 function resize(){const dpr=devicePixelRatio||1;W=canvas.width=Math.floor(window.innerWidth*dpr);H=canvas.height=Math.floor(window.innerHeight*0.6*dpr);canvas.style.width=window.innerWidth+'px';canvas.style.height=(window.innerHeight*0.6)+'px';ctx.setTransform(dpr,0,0,dpr,0,0);}
 window.addEventListener('resize',resize);resize();
+
 function heart(p){const x=16*Math.sin(p)**3;const y=13*Math.cos(p)-5*Math.cos(2*p)-2*Math.cos(3*p)-Math.cos(4*p);return {x,y};}
-function drawHeart(cx,cy,baseScale,hue,glowStrength){ctx.save();ctx.translate(cx,cy);const s=baseScale;ctx.beginPath();for(let a=0;a<=Math.PI*2;a+=0.02){const p=heart(a);const x=p.x*s;const y=-p.y*s;if(a===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.fillStyle='rgba(10,0,0,0.06)';ctx.fill();const grad=ctx.createLinearGradient(-s*18,-s*18,s*18,s*18);grad.addColorStop(0,`hsla(${(hue+40)%360},92%,60%,1)`);grad.addColorStop(0.5,`hsla(${hue%360},88%,55%,1)`);grad.addColorStop(1,`hsla(${(hue+320)%360},92%,60%,1)`);ctx.lineWidth=Math.max(6,s*2.4);ctx.strokeStyle=grad;ctx.shadowBlur=Math.max(18,glowStrength*38);ctx.shadowColor=`hsla(${hue},100%,60%,0.95)`;ctx.stroke();ctx.lineWidth=Math.max(1.6,s*0.5);ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.shadowBlur=0;ctx.stroke();ctx.restore();}
-function drawParticle(x,y,r,hue,alpha){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=`hsla(${hue},90%,60%,${alpha})`;ctx.fill();}
+
+function drawHeart(cx,cy,baseScale,hue,glowStrength){
+  ctx.save();
+  ctx.translate(cx,cy);
+  const s=baseScale;
+  ctx.beginPath();
+  for(let a=0;a<=Math.PI*2;a+=0.02){
+    const p=heart(a);
+    const x=p.x*s;
+    const y=-p.y*s;
+    if(a===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+
+  ctx.fillStyle='rgba(10,0,0,0.06)'; ctx.fill();
+
+  const grad=ctx.createLinearGradient(-s*18,-s*18,s*18,s*18);
+  grad.addColorStop(0,`hsla(${(hue+40)%360},92%,60%,1)`);
+  grad.addColorStop(0.5,`hsla(${hue%360},88%,55%,1)`);
+  grad.addColorStop(1,`hsla(${(hue+320)%360},92%,60%,1)`);
+  ctx.lineWidth=Math.max(6,s*2.4);
+  ctx.strokeStyle=grad;
+  ctx.shadowBlur=Math.max(18,glowStrength*38+glowPulse);
+  ctx.shadowColor=`hsla(${hue},100%,60%,0.95)`;
+  ctx.stroke();
+
+  ctx.lineWidth=Math.max(1.6,s*0.5);
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.shadowBlur=0; ctx.stroke();
+  ctx.restore();
+}
+
+function drawParticle(x,y,r,hue,alpha){
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=`hsla(${hue},90%,60%,${alpha})`; ctx.fill();
+}
+
 let last=0;
-function render(now){const dt=(now-last)/1000||0.016;last=now;ctx.clearRect(0,0,canvas.width,canvas.height);const cx=canvas.width/devicePixelRatio/2;const cy=canvas.height/devicePixelRatio/2+6;const baseScale=Math.min(canvas.width,canvas.height)/(devicePixelRatio*50);const hue=(t*6)%360;const pulse=1+Math.sin(t*0.14)*0.08;drawHeart(cx,cy,baseScale*pulse,hue,Math.abs(Math.sin(t*0.14)));const particleCount=22;for(let i=0;i<particleCount;i++){const ang=(i/particleCount)*Math.PI*2+Math.sin(t*0.5+i)*0.25;const r=baseScale*18;const px=cx+Math.cos(ang)*r*(1+Math.sin(t*0.3+i)*0.06);const py=cy+Math.sin(ang)*r*(1+Math.cos(t*0.3+i)*0.06);const pr=Math.max(0.8,baseScale*0.45*(0.6+Math.abs(Math.sin(t*0.6+i))*0.8));const pa=0.18+0.5*Math.abs(Math.sin(t*0.6+i));drawParticle(px,py,pr,(hue+i*12)%360,pa);}t+=dt;requestAnimationFrame(render);}
+function render(now){
+  const dt=(now-last)/1000||0.016; last=now;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const cx=canvas.width/devicePixelRatio/2;
+  const cy=canvas.height/devicePixelRatio/2+6;
+  const baseScale=Math.min(canvas.width,canvas.height)/(devicePixelRatio*50);
+  const hue=(t*6)%360;
+  const pulse=1+Math.sin(t*0.14)*0.08;
+  drawHeart(cx,cy,baseScale*pulse,hue,Math.abs(Math.sin(t*0.14)));
+
+  const particleCount=28;
+  for(let i=0;i<particleCount;i++){
+    const ang=(i/particleCount)*Math.PI*2+Math.sin(t*0.5+i)*0.25;
+    const r=baseScale*18;
+    const px=cx+Math.cos(ang)*r*(1+Math.sin(t*0.3+i)*0.06);
+    const py=cy+Math.sin(ang)*r*(1+Math.cos(t*0.3+i)*0.06);
+    const pr=Math.max(0.8,baseScale*0.45*(0.6+Math.abs(Math.sin(t*0.6+i))*0.8));
+    const pa=0.18+0.5*Math.abs(Math.sin(t*0.6+i));
+    drawParticle(px,py,pr,(hue+i*12)%360,pa);
+  }
+
+  t+=dt; requestAnimationFrame(render);
+}
+
+canvas.addEventListener('click',()=>{glowPulse=20; setTimeout(()=>{glowPulse=0;},400);});
 requestAnimationFrame(render);
+
 const caption=document.getElementById('caption');
 setTimeout(()=>{caption.classList.add('show');},650);
-const messages=["Every heartbeat spells your name...","You are the code I want to run forever.","In a world of variables, you're my constant.","For you, I'd debug the universe."];
+
+const messages=[
+  "Every heartbeat spells your name...",
+  "You are the code I want to run forever.",
+  "In a world of variables, you're my constant.",
+  "For you, I'd debug the universe.",
+  "Your love is my infinite loop ❤"
+];
 const msgEl=document.getElementById('typeMsg');
 let msgIndex=0;
-function typeMessage(text,done){msgEl.innerHTML='';let i=0;const cursor=document.createElement('span');cursor.className='cursor';function step(){if(i<text.length){msgEl.textContent+=text.charAt(i);i++;setTimeout(step,45+Math.random()*40);}else{msgEl.appendChild(cursor);setTimeout(()=>{msgEl.removeChild(cursor);done();},1400);}}step();}
-function nextMessage(){typeMessage(messages[msgIndex],()=>{msgIndex=(msgIndex+1)%messages.length;setTimeout(nextMessage,900);});}
+
+function typeMessage(text,done){
+  msgEl.innerHTML=''; let i=0;
+  const cursor=document.createElement('span'); cursor.className='cursor';
+  function step(){if(i<text.length){msgEl.textContent+=text.charAt(i); i++; setTimeout(step,45+Math.random()*40);} else {msgEl.appendChild(cursor); setTimeout(()=>{msgEl.removeChild(cursor); done();},1400);}}
+  step();
+}
+
+function nextMessage(){typeMessage(messages[msgIndex],()=>{msgIndex=(msgIndex+1)%messages.length; setTimeout(nextMessage,900);});}
 setTimeout(()=>{nextMessage();},1200);
+
 const codeTrack=document.getElementById('codeTrack');
-setInterval(()=>{const hue=Math.floor((Date.now()/80)%360);codeTrack.style.color=`hsl(${hue} 100% 60%)`;},180);
+setInterval(()=>{const hue=Math.floor((Date.now()/80)%360); codeTrack.style.color=`hsl(${hue} 100% 60%)`;},180);
 </script>
 </body>
 </html>
