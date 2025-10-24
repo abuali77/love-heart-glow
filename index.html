@@ -6,7 +6,7 @@
 <title>Heart Glow Pro — ♡Dew♡</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600;800&family=Source+Code+Pro:wght@300;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#000}
+:root{--bg:#000;--heart-color:255,80,100}
 html,body{height:100%;margin:0;background:var(--bg);font-family:'Montserrat',system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;overflow:hidden}
 .wrap{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative}
 canvas{width:100%;height:60vh;display:block}
@@ -23,6 +23,9 @@ canvas{width:100%;height:60vh;display:block}
 .msg .cursor{display:inline-block;width:10px;background:linear-gradient(90deg,#fff70a,#ff7aa2);height:1em;margin-left:6px;vertical-align:middle;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 .footer{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-family:'Source Code Pro',monospace;font-size:12px;color:rgba(255,255,255,0.6)}
+.btn-container{position:fixed;bottom:50px;display:flex;gap:12px;z-index:30}
+button{padding:8px 16px;font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;background:#111;color:#fff;transition:0.3s}
+button:hover{background:#222}
 @media (max-width:420px){.line2{font-size:26px}.line1{font-size:16px}}
 </style>
 </head>
@@ -30,13 +33,7 @@ canvas{width:100%;height:60vh;display:block}
 <div class="wrap">
   <div class="code-bg" aria-hidden="true">
     <div class="code-lines">
-      <div class="code-track" id="codeTrack">
-// love.py for i in range(0, 1000): print("❤ Dew ❤")
-// heartbeat loop
-// commit love git commit -m "forever" git push origin heart
-// function whisper(name){ return `I love you ${name}` }
-// end of file
-      </div>
+      <div class="code-track" id="codeTrack">// love.py ... heartbeat loop ... git commit -m "forever"</div>
     </div>
   </div>
 
@@ -48,13 +45,18 @@ canvas{width:100%;height:60vh;display:block}
     <div class="msg" id="typeMsg"></div>
   </div>
 
-  <div class="footer">From Abdulrahman — <code>Love.start("forever"); console.log("Running...");</code></div>
+  <div class="footer">From Abdulrahman — <code>Love.start("forever");</code></div>
+
+  <div class="btn-container">
+    <button id="btnLove">💌 Send Love</button>
+    <button id="btnColor">🎨 Change Heart Color</button>
+  </div>
 </div>
 
 <script>
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
-let W=0,H=0,t=0,glowPulse=0;
+let W=0,H=0,t=0,glowPulse=0,heartColor=[255,80,100];
 
 function resize(){const dpr=devicePixelRatio||1;W=canvas.width=Math.floor(window.innerWidth*dpr);H=canvas.height=Math.floor(window.innerHeight*0.6*dpr);canvas.style.width=window.innerWidth+'px';canvas.style.height=(window.innerHeight*0.6)+'px';ctx.setTransform(dpr,0,0,dpr,0,0);}
 window.addEventListener('resize',resize);resize();
@@ -62,20 +64,11 @@ window.addEventListener('resize',resize);resize();
 function heart(p){const x=16*Math.sin(p)**3;const y=13*Math.cos(p)-5*Math.cos(2*p)-2*Math.cos(3*p)-Math.cos(4*p);return {x,y};}
 
 function drawHeart(cx,cy,baseScale,hue,glowStrength){
-  ctx.save();
-  ctx.translate(cx,cy);
-  const s=baseScale;
-  ctx.beginPath();
-  for(let a=0;a<=Math.PI*2;a+=0.02){
-    const p=heart(a);
-    const x=p.x*s;
-    const y=-p.y*s;
-    if(a===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  }
+  ctx.save(); ctx.translate(cx,cy);
+  const s=baseScale; ctx.beginPath();
+  for(let a=0;a<=Math.PI*2;a+=0.02){const p=heart(a);const x=p.x*s;const y=-p.y*s;if(a===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
   ctx.closePath();
-
-  ctx.fillStyle='rgba(10,0,0,0.06)'; ctx.fill();
-
+  ctx.fillStyle='rgba(10,0,0,0.06)';ctx.fill();
   const grad=ctx.createLinearGradient(-s*18,-s*18,s*18,s*18);
   grad.addColorStop(0,`hsla(${(hue+40)%360},92%,60%,1)`);
   grad.addColorStop(0.5,`hsla(${hue%360},88%,55%,1)`);
@@ -83,19 +76,17 @@ function drawHeart(cx,cy,baseScale,hue,glowStrength){
   ctx.lineWidth=Math.max(6,s*2.4);
   ctx.strokeStyle=grad;
   ctx.shadowBlur=Math.max(18,glowStrength*38+glowPulse);
-  ctx.shadowColor=`hsla(${hue},100%,60%,0.95)`;
+  ctx.shadowColor=`rgba(${heartColor[0]},${heartColor[1]},${heartColor[2]},0.95)`;
   ctx.stroke();
-
-  ctx.lineWidth=Math.max(1.6,s*0.5);
-  ctx.strokeStyle='rgba(255,255,255,0.08)';
-  ctx.shadowBlur=0; ctx.stroke();
+  ctx.lineWidth=Math.max(1.6,s*0.5); ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.shadowBlur=0; ctx.stroke();
   ctx.restore();
 }
 
-function drawParticle(x,y,r,hue,alpha){
-  ctx.beginPath();
-  ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=`hsla(${hue},90%,60%,${alpha})`; ctx.fill();
+function drawParticle(x,y,r,hue,alpha){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=`hsla(${hue},90%,60%,${alpha})`;ctx.fill();}
+
+// floating mini hearts
+let miniHearts=[]; function spawnMiniHeart(x,y){
+  miniHearts.push({x,y,r:Math.random()*6+2,hue:Math.random()*360,alpha:1,vy:-0.5}); if(miniHearts.length>80) miniHearts.shift();
 }
 
 let last=0;
@@ -109,6 +100,7 @@ function render(now){
   const pulse=1+Math.sin(t*0.14)*0.08;
   drawHeart(cx,cy,baseScale*pulse,hue,Math.abs(Math.sin(t*0.14)));
 
+  // main particles
   const particleCount=28;
   for(let i=0;i<particleCount;i++){
     const ang=(i/particleCount)*Math.PI*2+Math.sin(t*0.5+i)*0.25;
@@ -120,37 +112,50 @@ function render(now){
     drawParticle(px,py,pr,(hue+i*12)%360,pa);
   }
 
+  // mini hearts
+  miniHearts.forEach(h=>{
+    h.y+=h.vy; h.alpha-=0.015;
+    drawParticle(h.x,h.y,h.r,h.hue,h.alpha);
+  });
+  miniHearts=miniHearts.filter(h=>h.alpha>0);
+
   t+=dt; requestAnimationFrame(render);
 }
 
-canvas.addEventListener('click',()=>{glowPulse=20; setTimeout(()=>{glowPulse=0;},400);});
+canvas.addEventListener('click',()=>{glowPulse=20; spawnMiniHeart(canvas.width/2,canvas.height/2); setTimeout(()=>{glowPulse=0;},400);});
+canvas.addEventListener('mousemove',e=>{spawnMiniHeart(e.offsetX,e.offsetY);});
 requestAnimationFrame(render);
 
+// caption
 const caption=document.getElementById('caption');
 setTimeout(()=>{caption.classList.add('show');},650);
 
+// typewriter messages
 const messages=[
   "Every heartbeat spells your name...",
   "You are the code I want to run forever.",
-  "In a world of variables, you're my constant.",
   "For you, I'd debug the universe.",
   "Your love is my infinite loop ❤"
 ];
-const msgEl=document.getElementById('typeMsg');
-let msgIndex=0;
+const msgEl=document.getElementById('typeMsg'); let msgIndex=0;
 
 function typeMessage(text,done){
   msgEl.innerHTML=''; let i=0;
   const cursor=document.createElement('span'); cursor.className='cursor';
-  function step(){if(i<text.length){msgEl.textContent+=text.charAt(i); i++; setTimeout(step,45+Math.random()*40);} else {msgEl.appendChild(cursor); setTimeout(()=>{msgEl.removeChild(cursor); done();},1400);}}
+  function step(){if(i<text.length){msgEl.textContent+=text.charAt(i); i++; setTimeout(step,45+Math.random()*40);}else{msgEl.appendChild(cursor); setTimeout(()=>{msgEl.removeChild(cursor); done();},1400);}}
   step();
 }
 
 function nextMessage(){typeMessage(messages[msgIndex],()=>{msgIndex=(msgIndex+1)%messages.length; setTimeout(nextMessage,900);});}
 setTimeout(()=>{nextMessage();},1200);
 
+// code background hue animation
 const codeTrack=document.getElementById('codeTrack');
 setInterval(()=>{const hue=Math.floor((Date.now()/80)%360); codeTrack.style.color=`hsl(${hue} 100% 60%)`;},180);
+
+// buttons
+document.getElementById('btnColor').addEventListener('click',()=>{heartColor=[Math.floor(Math.random()*256),Math.floor(Math.random()*256),Math.floor(Math.random()*256)];});
+document.getElementById('btnLove').addEventListener('click',()=>{spawnMiniHeart(canvas.width/2,canvas.height/2); glowPulse=25; setTimeout(()=>{glowPulse=0;},500);});
 </script>
 </body>
 </html>
